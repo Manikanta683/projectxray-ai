@@ -14,11 +14,21 @@ class DimensionScore(BaseModel):
     reasons: list[str]
 
 
+class RiskFlag(BaseModel):
+    category: str
+    severity: str
+    message: str
+
+
 class AnalysisResponse(BaseModel):
     project_title: str
     overall_score: int = Field(..., ge=0, le=100)
     verdict: str
+    confidence: int = Field(..., ge=0, le=100)
     feasibility: DimensionScore
     technical_risk: DimensionScore
     originality: DimensionScore
+    scope_clarity: DimensionScore
+    user_fit: DimensionScore
+    risk_flags: list[RiskFlag]
     recommendations: list[str]

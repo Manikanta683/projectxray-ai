@@ -1,6 +1,17 @@
 from pydantic import BaseModel, Field
 
 
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=160)
+    password: str = Field(..., min_length=4, max_length=200)
+
+
+class LoginResponse(BaseModel):
+    authenticated: bool
+    user: str
+    message: str
+
+
 class ProjectIdeaRequest(BaseModel):
     title: str = Field(..., min_length=3, max_length=120)
     description: str = Field(..., min_length=20, max_length=5000)

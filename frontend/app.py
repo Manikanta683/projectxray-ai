@@ -5,6 +5,7 @@ import requests
 import streamlit as st
 
 API_URL = os.getenv("PROJECTXRAY_API_URL", "https://projectxray-api.onrender.com").rstrip("/")
+AUTH_URL = f"{API_URL}/api/v1/auth/login"
 ANALYZE_URL = f"{API_URL}/api/v1/analyze"
 RECOMMEND_URL = f"{API_URL}/api/v1/recommend"
 HEALTH_URL = f"{API_URL}/health"
@@ -28,17 +29,15 @@ st.markdown("""
 .risk {padding: .75rem 1rem; border-left: 4px solid #ff6b6b; background: #24171a; border-radius: 8px; margin: .45rem 0;}
 .agent {padding: 1rem 1.1rem; border: 1px solid #30343b; background: #141720; border-radius: 12px; margin: .5rem 0;}
 .source {padding:.65rem .85rem; border:1px solid #30343b; border-radius:10px; background:#141720; margin-bottom:.8rem;}
+.login-card {max-width: 520px; margin: 7vh auto; padding: 2.2rem; border: 1px solid #30343b; border-radius: 22px; background: linear-gradient(135deg,#10131a,#191d28);}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="hero">
-  <h1>🔎 ProjectX-Ray</h1>
-  <p>Define your own project. Stress-test the idea. Get practical, personalized recommendations before you build.</p>
-  <span class="pill">User-defined input</span><span class="pill">Explainable scoring</span><span class="pill">Live recommendation agent</span>
-</div>
-""", unsafe_allow_html=True)
-
+# Session state
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "user_email" not in st.session_state:
+    st.session_state.user_email = ""
 if "project_data" not in st.session_state:
     st.session_state.project_data = {"title": "", "description": "", "users": "", "tech": ""}
 if "analysis" not in st.session_state:
@@ -46,7 +45,57 @@ if "analysis" not in st.session_state:
 if "agent_messages" not in st.session_state:
     st.session_state.agent_messages = []
 
+# Login gate
+if not st.session_state.authenticated:
+    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+    st.markdown("# 🔎 ProjectX-Ray")
+    st.markdown("### Welcome back")
+    st.caption("Sign in to access your project stress-testing workspace.")
+    with st.form("login_form"):
+        email = st.text_input("Email", placeholder="you@example.com")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
+        login = st.form_submit_button("🔐 Sign in", type="primary", use_container_width=True)
+    if login:
+        if not email.strip() or not password:
+            st.error("Enter both email and password.")
+        else:
+            try:
+                response = requests.post(AUTH_URL, json={"email": email.strip(), "password": password}, timeout=15)
+                response.raise_for_status()
+                data = response.json()
+                if data.get("authenticated"):
+                    st.session_state.authenticated = True
+                    st.session_state.user_email = data.get("user", email.strip().lower())
+                    st.rerun()
+                else:
+                    st.error(data.get("message", "Invalid email or password."))
+            except (requests.RequestException, ValueError) as exc:
+                st.error("Login service is unavailable.")
+                st.code(str(exc))
+    st.info("Demo account: demo@projectxray.app  |  Password: projectxray123")
+    st.caption("Demo authentication is server-validated and does not require Google/OpenAI APIs.")
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
+# Main application
+st.markdown("""
+<div class="hero">
+  <h1>🔎 ProjectX-Ray</h1>
+  <p>Define your own project. Stress-test the idea. Get practical, personalized recommendations before you build.</p>
+  <span class="pill">User-defined input</span><span class="pill">Explainable scoring</span><span class="pill">Live recommendation agent</span><span class="pill">User workspace</span>
+</div>
+""", unsafe_allow_html=True)
+
 with st.sidebar:
+    st.header("👤 User workspace")
+    st.write(st.session_state.user_email)
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.authenticated = False
+        st.session_state.user_email = ""
+        st.session_state.analysis = None
+        st.session_state.agent_messages = []
+        st.rerun()
+    st.divider()
     st.header("⚙️ Project controls")
     st.caption("This is a real submission workflow — examples are optional.")
     if st.button("✨ Load example", use_container_width=True):
@@ -185,7 +234,7 @@ if result:
             st.session_state.agent_messages.append({"role": "assistant", "content": f"I couldn't reach the recommendation agent right now. The built-in recommendations are still available above.\n\nTechnical detail: `{exc}`"})
             st.rerun()
 
-    st.caption("The external model does not control the explainable scores. It only provides contextual recommendation text; without an API key, the agent safely uses a built-in fallback.")
+    st.caption("The external model does not control the explainable scores. Without an external API key, the agent safely uses the built-in recommendation engine.")
 else:
     st.divider()
     st.subheader("2. Your result will appear here")

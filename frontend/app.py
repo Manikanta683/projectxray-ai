@@ -1,109 +1,181 @@
 import os
+import random
 
 import requests
 import streamlit as st
 
-API_URL = os.getenv("PROJECTXRAY_API_URL", "http://127.0.0.1:8000").rstrip("/")
+API_URL = os.getenv("PROJECTXRAY_API_URL", "https://projectxray-api.onrender.com").rstrip("/")
 ANALYZE_URL = f"{API_URL}/api/v1/analyze"
-
-DEMO_TITLE = "AI Project Idea Generator & Mentor for Final-Year Projects"
-DEMO_DESCRIPTION = (
-    "Build an AI-powered platform that helps final-year students generate project ideas "
-    "based on their interests and skills and provides guidance on features, technologies, "
-    "development steps, and improvements to turn the idea into a practical project."
-)
-DEMO_USERS = "Final-year engineering and college students selecting a practical project"
-DEMO_TECH = "Python, FastAPI, Streamlit"
+HEALTH_URL = f"{API_URL}/health"
 
 st.set_page_config(page_title="ProjectX-Ray", page_icon="🔎", layout="wide")
 
 st.markdown(
     """
     <style>
-    .block-container {max-width: 1200px; padding-top: 2rem;}
-    .hero {padding: 1.2rem 1.4rem; border: 1px solid #dfe5ee; border-radius: 14px; background: #f8fafc;}
-    .hero h1 {margin: 0; font-size: 2.1rem;}
-    .hero p {margin: .35rem 0 0; color: #5b6472;}
-    .rec {padding: .85rem 1rem; border-left: 4px solid #3b82f6; background: #f8fafc; border-radius: 8px; margin: .55rem 0;}
-    .risk {padding: .75rem 1rem; border-left: 4px solid #ef4444; background: #fff7f7; border-radius: 8px; margin: .45rem 0;}
-    .small {color:#6b7280; font-size:.9rem;}
+    .block-container {max-width: 1180px; padding-top: 2rem;}
+    .hero {padding: 1.4rem 1.6rem; border: 1px solid #30343b; border-radius: 18px; background: linear-gradient(135deg,#11131a,#181b24);}
+    .hero h1 {margin: 0; font-size: 2.5rem;}
+    .hero p {margin: .45rem 0 0; color: #aab1bf; font-size: 1.05rem;}
+    .card {padding: 1rem 1.1rem; border: 1px solid #30343b; border-radius: 14px; background: #11131a;}
+    .rec {padding: .85rem 1rem; border-left: 4px solid #6c8cff; background: #171a22; border-radius: 8px; margin: .55rem 0;}
+    .risk {padding: .75rem 1rem; border-left: 4px solid #ff6b6b; background: #24171a; border-radius: 8px; margin: .45rem 0;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 st.markdown(
-    f"""
+    """
     <div class="hero">
       <h1>🔎 ProjectX-Ray</h1>
-      <p>Live project stress-testing: feasibility, technical risk, originality, scope, user fit and recommendations.</p>
+      <p>Build your own project idea, then stress-test it before you spend your time building it.</p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-st.caption(f"Live analysis endpoint: {ANALYZE_URL}")
+st.write("")
 
 with st.sidebar:
-    st.header("Demo controls")
-    if st.button("Load screenshot project", use_container_width=True):
-        st.session_state.title = DEMO_TITLE
-        st.session_state.description = DEMO_DESCRIPTION
-        st.session_state.users = DEMO_USERS
-        st.session_state.tech = DEMO_TECH
+    st.header("Your project")
+    st.caption("Everything below is user-defined. The app does not require the demo project.")
+    st.caption(f"Backend: {API_URL}")
+    if st.button("Check backend", use_container_width=True):
+        try:
+            health = requests.get(HEALTH_URL, timeout=10)
+            health.raise_for_status()
+            st.success("Backend is online")
+        except requests.RequestException as exc:
+            st.error("Backend is not reachable")
+            st.code(str(exc))
+
+# Keep examples separate from the actual user workflow.
+EXAMPLES = [
+    {
+        "title": "Campus Lost & Found",
+        "description": "A web platform where students report lost items, upload photos, search matching reports, and contact the owner through a controlled request flow.",
+        "users": "College students and campus administrators",
+        "tech": "Python, FastAPI, Streamlit, SQLite",
+    },
+    {
+        "title": "Study Planner for Final-Year Students",
+        "description": "A planner that converts subjects, deadlines, available study hours, and weak topics into a realistic weekly study schedule with progress tracking.",
+        "users": "Final-year engineering students",
+        "tech": "Python, FastAPI, Streamlit, SQLite",
+    },
+    {
+        "title": "Local Clinic Appointment System",
+        "description": "A booking system where patients view available slots, request appointments, and receive confirmation while clinic staff manage schedules and cancellations.",
+        "users": "Patients, doctors, and clinic staff",
+        "tech": "Python, FastAPI, PostgreSQL, Docker",
+    },
+]
+
+if "project_data" not in st.session_state:
+    st.session_state.project_data = {
+        "title": "",
+        "description": "",
+        "users": "",
+        "tech": "",
+    }
+
+if "analysis" not in st.session_state:
+    st.session_state.analysis = None
+
+controls = st.columns([1, 1, 1, 2])
+with controls[0]:
+    if st.button("✨ Example", use_container_width=True):
+        st.session_state.project_data = random.choice(EXAMPLES).copy()
+        st.session_state.analysis = None
         st.rerun()
-    live = st.toggle("Live recommendations", value=True)
-    st.markdown("The report refreshes whenever the project inputs are changed and the page reruns.")
+with controls[1]:
+    if st.button("🧹 Clear", use_container_width=True):
+        st.session_state.project_data = {"title": "", "description": "", "users": "", "tech": ""}
+        st.session_state.analysis = None
+        st.rerun()
+with controls[2]:
+    if st.button("🔄 New idea", use_container_width=True):
+        st.session_state.project_data = random.choice(EXAMPLES).copy()
+        st.session_state.analysis = None
+        st.rerun()
 
-st.subheader("Project idea")
-title = st.text_input("Project title", value=st.session_state.get("title", DEMO_TITLE), key="title")
-description = st.text_area(
-    "What are you building?",
-    value=st.session_state.get("description", DEMO_DESCRIPTION),
-    height=150,
-    key="description",
-)
-users = st.text_input(
-    "Target users",
-    value=st.session_state.get("users", DEMO_USERS),
-    key="users",
-)
-tech = st.text_input(
-    "Technologies (comma separated)",
-    value=st.session_state.get("tech", DEMO_TECH),
-    key="tech",
-)
+st.subheader("1. Define your own project")
+st.caption("Enter any project you want. You control the idea, users, and technology stack.")
 
-payload = {
-    "title": title,
-    "description": description,
-    "target_users": users,
-    "technologies": [item.strip() for item in tech.split(",") if item.strip()],
-}
+with st.form("project_form", clear_on_submit=False):
+    title = st.text_input(
+        "Project title",
+        value=st.session_state.project_data["title"],
+        placeholder="e.g. Smart Campus Lost & Found",
+    )
+    description = st.text_area(
+        "What are you building?",
+        value=st.session_state.project_data["description"],
+        height=150,
+        placeholder="Explain the problem, what the system does, and its main features...",
+    )
+    users = st.text_input(
+        "Who will use it?",
+        value=st.session_state.project_data["users"],
+        placeholder="e.g. College students and campus staff",
+    )
+    tech = st.text_input(
+        "Technologies (comma separated)",
+        value=st.session_state.project_data["tech"],
+        placeholder="e.g. Python, FastAPI, Streamlit, PostgreSQL",
+    )
+    submitted = st.form_submit_button("🚀 Stress-test my project", type="primary", use_container_width=True)
 
-if not live:
-    if st.button("Analyze project", type="primary"):
-        st.session_state.run_analysis = True
+if submitted:
+    st.session_state.project_data = {
+        "title": title,
+        "description": description,
+        "users": users,
+        "tech": tech,
+    }
 
-should_analyze = live or st.session_state.get("run_analysis", False)
+    errors = []
+    if len(title.strip()) < 3:
+        errors.append("Project title must contain at least 3 characters.")
+    if len(description.strip()) < 20:
+        errors.append("Project description must contain at least 20 characters.")
+    if len(users.strip()) < 3:
+        errors.append("Please specify who will use the project.")
 
-if not title.strip() or len(description.strip()) < 20 or not users.strip():
-    st.info("Enter a title, at least 20 characters of description, and target users to start the live analysis.")
-    st.stop()
+    if errors:
+        for error in errors:
+            st.error(error)
+        st.session_state.analysis = None
+    else:
+        payload = {
+            "title": title.strip(),
+            "description": description.strip(),
+            "target_users": users.strip(),
+            "technologies": [item.strip() for item in tech.split(",") if item.strip()],
+        }
+        with st.spinner("Stress-testing your project..."):
+            try:
+                response = requests.post(ANALYZE_URL, json=payload, timeout=30)
+                if response.status_code >= 400:
+                    try:
+                        detail = response.json().get("detail", response.text)
+                    except ValueError:
+                        detail = response.text
+                    raise RuntimeError(f"Backend returned HTTP {response.status_code}: {detail}")
+                st.session_state.analysis = response.json()
+                st.success("Analysis completed successfully.")
+            except (requests.RequestException, RuntimeError, ValueError) as exc:
+                st.session_state.analysis = None
+                st.error("The project could not be submitted to the backend.")
+                st.code(str(exc))
+                st.info("Use the 'Check backend' button in the sidebar to verify the API connection.")
 
-if should_analyze:
-    try:
-        response = requests.post(ANALYZE_URL, json=payload, timeout=10)
-        response.raise_for_status()
-        result = response.json()
-        st.session_state.run_analysis = False
-    except requests.RequestException as exc:
-        st.error("ProjectX-Ray backend is not reachable. Start FastAPI on port 8000, then refresh this page.")
-        st.code(str(exc))
-        st.stop()
+result = st.session_state.analysis
 
+if result:
     st.divider()
-    st.subheader("Live ProjectX-Ray report")
+    st.subheader(f"2. ProjectX-Ray report — {result['project_title']}")
 
     cols = st.columns(6)
     metrics = [
@@ -117,7 +189,7 @@ if should_analyze:
     for col, (label, value) in zip(cols, metrics):
         col.metric(label, value)
 
-    st.info(f"**Verdict:** {result['verdict']}  ·  **Analysis confidence:** {result['confidence']}/100")
+    st.info(f"**Verdict:** {result['verdict']}  ·  **Confidence:** {result['confidence']}/100")
 
     left, right = st.columns(2)
     with left:
@@ -135,19 +207,20 @@ if should_analyze:
                 st.markdown(f"- {reason}")
 
     with right:
-        st.markdown("### 💡 Live recommendations")
-        if result["recommendations"]:
-            for index, recommendation in enumerate(result["recommendations"], start=1):
-                st.markdown(f'<div class="rec"><b>{index}.</b> {recommendation}</div>', unsafe_allow_html=True)
-        else:
-            st.success("No additional recommendations were generated.")
+        st.markdown("### 💡 Recommendations")
+        for index, recommendation in enumerate(result["recommendations"], start=1):
+            st.markdown(f'<div class="rec"><b>{index}.</b> {recommendation}</div>', unsafe_allow_html=True)
 
         if result["risk_flags"]:
-            st.markdown("### ⚠️ Detected risk flags")
+            st.markdown("### ⚠️ Risk flags")
             for flag in result["risk_flags"]:
                 st.markdown(
                     f'<div class="risk"><b>{flag["severity"].upper()}</b> · {flag["category"]}<br>{flag["message"]}</div>',
                     unsafe_allow_html=True,
                 )
 
-    st.caption("Recommendations are generated from the current project description, users and technology stack; they are screening guidance, not proof of project success.")
+    st.caption("This report is screening guidance based on the information you entered; it is not proof of project success.")
+else:
+    st.divider()
+    st.subheader("2. Your result will appear here")
+    st.write("Fill in your project and click **🚀 Stress-test my project**. The app will submit your actual inputs to the deployed FastAPI backend and return the analysis.")

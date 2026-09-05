@@ -17,7 +17,6 @@ def root():
         "project": "ProjectX-Ray",
         "status": "running",
         "version": "0.2.0",
-        "analysis_endpoint": "/api/v1/analyze",
     }
 
 

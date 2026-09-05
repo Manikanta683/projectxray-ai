@@ -1,6 +1,7 @@
 import re
 
 from ..schemas.project import AnalysisResponse, DimensionScore, ProjectIdeaRequest, RiskFlag
+from .llm_recommendations import enhance_recommendations
 from .recommendations import generate_recommendations
 
 
@@ -192,7 +193,7 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
     else:
         verdict = "High-risk concept that needs redesign"
 
-    recommendations = generate_recommendations(
+    base_recommendations = generate_recommendations(
         text=text,
         technologies=tech,
         feasibility=feasibility,
@@ -202,6 +203,28 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
         risk_points=risk_points,
         risk_flags=risk_flags,
         unknown_tech=unknown_tech,
+    )
+
+    analysis_snapshot = {
+        "overall_score": overall,
+        "verdict": verdict,
+        "confidence": confidence,
+        "feasibility": feasibility,
+        "technical_risk": risk_score,
+        "originality": originality,
+        "scope_clarity": scope,
+        "user_fit": user_fit,
+        "risk_flags": [flag.model_dump() for flag in risk_flags],
+    }
+    enhanced_recommendations, recommendation_source = enhance_recommendations(
+        project={
+            "title": title,
+            "description": description,
+            "target_users": users,
+            "technologies": sorted(tech),
+        },
+        analysis=analysis_snapshot,
+        base_recommendations=base_recommendations,
     )
 
     return AnalysisResponse(
@@ -215,5 +238,6 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
         scope_clarity=DimensionScore(score=scope, level=score_level(scope), reasons=scope_reasons),
         user_fit=DimensionScore(score=user_fit, level=score_level(user_fit), reasons=user_fit_reasons),
         risk_flags=risk_flags,
-        recommendations=recommendations,
+        recommendations=enhanced_recommendations,
+        recommendation_source=recommendation_source,
     )

@@ -21,6 +21,13 @@ def generate_recommendations(
         if message not in recommendations:
             recommendations.append(message)
 
+    # Recommendations specific to project-idea generation and mentoring systems.
+    if any(term in lower for term in ("project idea", "project ideas", "idea generator", "generate project")) and any(term in lower for term in ("student", "college", "final-year", "final year")):
+        add("Make personalization the core differentiator: collect each student's interests, skills, preferred domain, time available, and current experience before generating ideas.")
+        add("Rank generated ideas against an explicit rubric such as skill match, feasibility, originality, implementation effort, and expected learning value instead of returning an unranked list.")
+        add("Keep the mentor flow actionable: for every selected idea, produce an MVP boundary, recommended features, technology choices, development milestones, and the main risks to validate first.")
+        add("Use a curated project knowledge base or tagged historical examples to reduce repetitive ideas and explain why a recommendation is suitable for the student.")
+
     # Recommendations tied directly to detected risk domains.
     if any(term in lower for term in ("medical", "healthcare", "clinical")):
         add("For a health-related product, define privacy, consent, safety, validation, and regulatory boundaries before implementation.")

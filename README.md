@@ -1,20 +1,25 @@
 # ProjectX-Ray
 
-Explainable system that stress-tests software project ideas for feasibility, technical risk, originality, and improvement opportunities.
+Explainable system that stress-tests software project ideas for feasibility, technical risk, originality, scope clarity, target-user fit, and improvement opportunities.
 
 ## Current Status
 
-Phase 1: Working backend MVP
+**Phase 2: Explainable analysis engine — v0.3.0**
 
 - FastAPI backend
-- Health check endpoint
 - Structured project idea input
-- Feasibility scoring
-- Technical risk scoring
-- Originality scoring
-- Explainable reasons
-- Improvement recommendations
-- Automated tests
+- Feasibility analysis
+- Technical-risk analysis with risk flags
+- Originality screening
+- Scope-clarity analysis
+- Target-user fit analysis
+- Confidence estimate
+- Explainable reasons for every score
+- Prioritized recommendations
+- Automated unit tests
+- GitHub Actions CI
+
+The current engine is deterministic and transparent. It does not pretend that keyword matching or heuristics prove feasibility or market demand. Scores are screening signals that can be extended with evidence and learned models later.
 
 ## Backend
 
@@ -54,13 +59,35 @@ Example request:
 ```json
 {
   "title": "Campus Study Planner",
-  "description": "A web application that helps college students plan study sessions, track tasks, and review weekly progress.",
-  "target_users": "College students who need a simple study planning tool",
+  "description": "A web application that helps college students plan study sessions, track tasks, and review weekly progress with reminders and simple analytics.",
+  "target_users": "College students who need a simple study planning tool for organizing their weekly study workload",
   "technologies": ["Python", "FastAPI", "React", "PostgreSQL"]
 }
 ```
 
-The response contains an overall score, feasibility, technical-risk and originality assessments, reasons, and recommendations.
+The response contains:
+
+- overall score and verdict
+- confidence estimate
+- feasibility score and reasons
+- technical-risk score and risk flags
+- originality score and reasons
+- scope-clarity score and reasons
+- target-user fit score and reasons
+- actionable recommendations
+
+## Analysis model
+
+The engine combines several transparent signals:
+
+1. **Feasibility** — description detail, stack definition, and scope breadth.
+2. **Technical risk** — high-risk domain requirements, scale signals, and unfamiliar technology signals.
+3. **Originality** — overlap with common project categories plus specificity of the target audience.
+4. **Scope clarity** — concrete actions, description depth, and scope-breadth signals.
+5. **User fit** — specificity of the target user and evidence of a problem or desired outcome.
+6. **Confidence** — amount of information available to the analyzer; it is not model accuracy.
+
+This is intentionally an explainable baseline. Future evidence-backed similarity analysis and optional model-assisted critique will be added as separate components.
 
 ## Testing
 
@@ -72,10 +99,10 @@ python -m pytest -q
 
 ## Roadmap
 
-1. Strengthen rule-based risk engine
-2. Add structured project assessment dimensions
-3. Add evidence-backed originality/similarity analysis
-4. Add explainable analysis report generation
-5. Build frontend dashboard
-6. Add optional LLM-assisted critique
-7. Add deployment and CI/CD
+1. Evidence-backed originality/similarity analysis
+2. Project risk matrix and severity prioritization
+3. Explainable analysis report generation
+4. Frontend dashboard
+5. Optional LLM-assisted critique with structured outputs
+6. Historical project benchmarking
+7. Deployment and monitoring

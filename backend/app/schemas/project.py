@@ -30,13 +30,6 @@ class DimensionScore(BaseModel):
     reasons: list[str]
 
 
-class ParameterScore(BaseModel):
-    name: str
-    score: int = Field(..., ge=0, le=100)
-    level: str
-    reasons: list[str]
-
-
 class RiskFlag(BaseModel):
     category: str
     severity: str
@@ -53,7 +46,6 @@ class AnalysisResponse(BaseModel):
     originality: DimensionScore
     scope_clarity: DimensionScore
     user_fit: DimensionScore
-    parameters: list[ParameterScore] = Field(default_factory=list)
     risk_flags: list[RiskFlag]
     recommendations: list[str]
     recommendation_source: str = "Built-in recommendation engine"

@@ -3,3 +3,4 @@ uvicorn[standard]
 pydantic
 pytest
 httpx
+requests>=2.32,<3

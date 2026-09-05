@@ -32,3 +32,4 @@ class AnalysisResponse(BaseModel):
     user_fit: DimensionScore
     risk_flags: list[RiskFlag]
     recommendations: list[str]
+    recommendation_source: str = "Rule-based fallback"

@@ -4,26 +4,20 @@ Explainable system that stress-tests software project ideas for feasibility, tec
 
 ## Current Status
 
-**Phase 2: Explainable analysis engine — v0.3.0**
+**Phase 3: Live project analysis demo — v0.4.0**
 
-- FastAPI backend
-- Structured project idea input
-- Feasibility analysis
-- Technical-risk analysis with risk flags
-- Originality screening
-- Scope-clarity analysis
-- Target-user fit analysis
-- Confidence estimate
-- Explainable reasons for every score
-- Prioritized recommendations
-- Automated unit tests
+- FastAPI analysis backend
+- Explainable scoring across five dimensions
+- Context-aware recommendations
+- Domain-specific risk flags
+- Live Streamlit demonstration frontend
+- Screenshot-ready demo project preloaded
+- Automated backend tests
 - GitHub Actions CI
 
-The current engine is deterministic and transparent. It does not pretend that keyword matching or heuristics prove feasibility or market demand. Scores are screening signals that can be extended with evidence and learned models later.
+The analysis engine is deterministic and transparent. Scores are screening signals, not proof of product-market fit or technical success.
 
-## Backend
-
-Run locally from the repository root:
+## Run the backend
 
 ```bash
 cd backend
@@ -38,32 +32,35 @@ python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
 
-### macOS / Linux
+API documentation: `http://127.0.0.1:8000/docs`
 
-```bash
-source venv/bin/activate
+## Run the live frontend
+
+Open a second terminal from the repository root:
+
+```powershell
+cd frontend
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload
+python -m streamlit run app.py
 ```
 
-API documentation:
+The frontend calls the FastAPI backend automatically. Keep the backend running while demonstrating the dashboard.
 
-`http://127.0.0.1:8000/docs`
+To use a deployed backend, set `PROJECTXRAY_API_URL` to the backend base URL before starting Streamlit.
+
+## Live recommendation demo
+
+The frontend includes the project shown in the demonstration:
+
+**AI Project Idea Generator & Mentor for Final-Year Projects**
+
+> Build an AI-powered platform that helps final-year students generate project ideas based on their interests and skills and provides guidance on features, technologies, development steps, and improvements to turn the idea into a practical project.
+
+When the inputs change, ProjectX-Ray sends the current project to `/api/v1/analyze` and refreshes the recommendations. For this example, the engine can recommend personalization inputs, idea-ranking criteria, an actionable mentor flow, a curated project knowledge base, MVP definition, and student pilot validation.
 
 ## API
 
 ### POST `/api/v1/analyze`
-
-Example request:
-
-```json
-{
-  "title": "Campus Study Planner",
-  "description": "A web application that helps college students plan study sessions, track tasks, and review weekly progress with reminders and simple analytics.",
-  "target_users": "College students who need a simple study planning tool for organizing their weekly study workload",
-  "technologies": ["Python", "FastAPI", "React", "PostgreSQL"]
-}
-```
 
 The response contains:
 
@@ -74,35 +71,13 @@ The response contains:
 - originality score and reasons
 - scope-clarity score and reasons
 - target-user fit score and reasons
-- actionable recommendations
-
-## Analysis model
-
-The engine combines several transparent signals:
-
-1. **Feasibility** — description detail, stack definition, and scope breadth.
-2. **Technical risk** — high-risk domain requirements, scale signals, and unfamiliar technology signals.
-3. **Originality** — overlap with common project categories plus specificity of the target audience.
-4. **Scope clarity** — concrete actions, description depth, and scope-breadth signals.
-5. **User fit** — specificity of the target user and evidence of a problem or desired outcome.
-6. **Confidence** — amount of information available to the analyzer; it is not model accuracy.
-
-This is intentionally an explainable baseline. Future evidence-backed similarity analysis and optional model-assisted critique will be added as separate components.
-
-## Testing
-
-From `backend` with the virtual environment activated:
-
-```bash
-python -m pytest -q
-```
+- context-aware recommendations
 
 ## Roadmap
 
 1. Evidence-backed originality/similarity analysis
-2. Project risk matrix and severity prioritization
-3. Explainable analysis report generation
-4. Frontend dashboard
-5. Optional LLM-assisted critique with structured outputs
-6. Historical project benchmarking
-7. Deployment and monitoring
+2. Project risk matrix with priority and impact
+3. Explainable report generation
+4. Historical project benchmarking
+5. Optional model-assisted critique
+6. Deployment and monitoring

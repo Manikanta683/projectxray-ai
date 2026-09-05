@@ -6,3 +6,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+
+  - type: web
+    name: projectxray-demo
+    runtime: python
+    rootDir: .
+    buildCommand: pip install -r frontend/requirements.txt
+    startCommand: streamlit run frontend/app.py --server.address 0.0.0.0 --server.port $PORT
+    envVars:
+      - key: PROJECTXRAY_API_URL
+        value: https://projectxray-api.onrender.com

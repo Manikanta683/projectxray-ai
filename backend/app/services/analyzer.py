@@ -1,6 +1,7 @@
 import re
 
 from ..schemas.project import AnalysisResponse, DimensionScore, ProjectIdeaRequest, RiskFlag
+from .recommendations import generate_recommendations
 
 
 HIGH_RISK_PATTERNS = {
@@ -191,20 +192,17 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
     else:
         verdict = "High-risk concept that needs redesign"
 
-    recommendations: list[str] = []
-    if scope < 70:
-        recommendations.append("Define one MVP outcome and limit the first release to the smallest feature set that proves it.")
-    if user_fit < 70:
-        recommendations.append("Interview or survey target users and document the specific problem, current workaround, and measurable benefit.")
-    if risk_points >= 35:
-        recommendations.append("Prototype the highest-risk requirement first and define a fallback if the assumption fails.")
-    if originality < 70:
-        recommendations.append("Add a defensible differentiator: a specific user segment, workflow, dataset, or measurable advantage.")
-    if not tech:
-        recommendations.append("Choose a practical initial stack and justify the major components before implementation.")
-    if not recommendations:
-        recommendations.append("Validate the concept with target users and measure one concrete outcome before expanding features.")
-    recommendations.append("Treat these scores as an explainable screening signal, not proof of product-market fit or technical success.")
+    recommendations = generate_recommendations(
+        text=text,
+        technologies=tech,
+        feasibility=feasibility,
+        originality=originality,
+        scope=scope,
+        user_fit=user_fit,
+        risk_points=risk_points,
+        risk_flags=risk_flags,
+        unknown_tech=unknown_tech,
+    )
 
     return AnalysisResponse(
         project_title=title,

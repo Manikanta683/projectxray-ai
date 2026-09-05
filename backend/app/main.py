@@ -2,10 +2,12 @@ from fastapi import FastAPI
 
 from .api.routes import router as analysis_router
 
+APP_VERSION = "0.5.0"
+
 app = FastAPI(
     title="ProjectX-Ray API",
     description="Explainable project feasibility, risk, originality and improvement analysis system",
-    version="0.3.0",
+    version=APP_VERSION,
 )
 
 app.include_router(analysis_router)
@@ -16,7 +18,7 @@ def root():
     return {
         "project": "ProjectX-Ray",
         "status": "running",
-        "version": "0.3.0",
+        "version": APP_VERSION,
         "capabilities": [
             "feasibility analysis",
             "technical risk analysis",
@@ -30,4 +32,4 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "version": "0.3.0"}
+    return {"status": "healthy", "version": APP_VERSION}

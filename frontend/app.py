@@ -1,241 +1,142 @@
 import os
 import random
-
 import requests
 import streamlit as st
 
 API_URL = os.getenv("PROJECTXRAY_API_URL", "https://projectxray-api.onrender.com").rstrip("/")
-AUTH_URL = f"{API_URL}/api/v1/auth/login"
+LOGIN_URL = f"{API_URL}/api/v1/auth/login"
+REGISTER_URL = f"{API_URL}/api/v1/auth/register"
 ANALYZE_URL = f"{API_URL}/api/v1/analyze"
 RECOMMEND_URL = f"{API_URL}/api/v1/recommend"
-HEALTH_URL = f"{API_URL}/health"
+HISTORY_URL = f"{API_URL}/api/v1/projects"
 
-st.set_page_config(page_title="ProjectX-Ray", page_icon="🔎", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="ProjectX-Ray", page_icon="🔎", layout="wide")
 
 EXAMPLES = [
-    {"title": "Campus Lost & Found", "description": "A web platform where students report lost items, upload photos, search matching reports, and contact the owner through a controlled request flow.", "users": "College students and campus administrators", "tech": "Python, FastAPI, Streamlit, SQLite"},
-    {"title": "Study Planner for Final-Year Students", "description": "A planner that converts subjects, deadlines, available study hours, and weak topics into a realistic weekly study schedule with progress tracking.", "users": "Final-year engineering students", "tech": "Python, FastAPI, Streamlit, SQLite"},
-    {"title": "Local Clinic Appointment System", "description": "A booking system where patients view available slots, request appointments, and receive confirmation while clinic staff manage schedules and cancellations.", "users": "Patients, doctors, and clinic staff", "tech": "Python, FastAPI, PostgreSQL, Docker"},
+    {"title":"Campus Lost & Found","description":"A web platform where students report lost items, upload photos, search matching reports, and contact the owner through a controlled request flow.","users":"College students and campus administrators","tech":"Python, FastAPI, Streamlit, SQLite"},
+    {"title":"Study Planner for Final-Year Students","description":"A planner that converts subjects, deadlines, available study hours, and weak topics into a realistic weekly study schedule with progress tracking.","users":"Final-year engineering students","tech":"Python, FastAPI, Streamlit, SQLite"},
+    {"title":"Local Clinic Appointment System","description":"A booking system where patients view available slots, request appointments, and receive confirmation while clinic staff manage schedules and cancellations.","users":"Patients, doctors, and clinic staff","tech":"Python, FastAPI, PostgreSQL, Docker"},
 ]
 
-st.markdown("""
-<style>
-.block-container {max-width: 1180px; padding-top: 1.8rem; padding-bottom: 3rem;}
-.hero {padding: 1.7rem 1.8rem; border: 1px solid #30343b; border-radius: 20px; background: linear-gradient(135deg,#10131a,#191d28);}
-.hero h1 {margin: 0; font-size: 2.65rem; letter-spacing: -.04em;}
-.hero p {margin: .55rem 0 0; color: #aab1bf; font-size: 1.08rem;}
-.pill {display:inline-block; padding:.3rem .65rem; border-radius:999px; background:#242936; color:#d8deea; font-size:.82rem; margin:.3rem .25rem 0 0;}
-.rec {padding: .9rem 1rem; border-left: 4px solid #6c8cff; background: #171a22; border-radius: 8px; margin: .55rem 0;}
-.risk {padding: .75rem 1rem; border-left: 4px solid #ff6b6b; background: #24171a; border-radius: 8px; margin: .45rem 0;}
-.agent {padding: 1rem 1.1rem; border: 1px solid #30343b; background: #141720; border-radius: 12px; margin: .5rem 0;}
-.source {padding:.65rem .85rem; border:1px solid #30343b; border-radius:10px; background:#141720; margin-bottom:.8rem;}
-.login-card {max-width: 520px; margin: 7vh auto; padding: 2.2rem; border: 1px solid #30343b; border-radius: 22px; background: linear-gradient(135deg,#10131a,#191d28);}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style>
+.block-container{max-width:1180px;padding-top:1.8rem;padding-bottom:3rem}.hero{padding:1.7rem;border:1px solid #30343b;border-radius:20px;background:linear-gradient(135deg,#10131a,#191d28)}.hero h1{margin:0;font-size:2.65rem}.hero p{color:#aab1bf;font-size:1.08rem}.pill{display:inline-block;padding:.3rem .65rem;border-radius:999px;background:#242936;color:#d8deea;font-size:.82rem;margin:.3rem}.rec{padding:.9rem 1rem;border-left:4px solid #6c8cff;background:#171a22;border-radius:8px;margin:.55rem 0}.risk{padding:.75rem 1rem;border-left:4px solid #ff6b6b;background:#24171a;border-radius:8px;margin:.45rem 0}.login-card{max-width:520px;margin:7vh auto;padding:2.2rem;border:1px solid #30343b;border-radius:22px;background:linear-gradient(135deg,#10131a,#191d28)}
+</style>""",unsafe_allow_html=True)
 
-# Session state
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "user_email" not in st.session_state:
-    st.session_state.user_email = ""
-if "project_data" not in st.session_state:
-    st.session_state.project_data = {"title": "", "description": "", "users": "", "tech": ""}
-if "analysis" not in st.session_state:
-    st.session_state.analysis = None
-if "agent_messages" not in st.session_state:
-    st.session_state.agent_messages = []
+for key, default in [("authenticated",False),("user_email",""),("analysis",None),("agent_messages",[])]:
+    if key not in st.session_state: st.session_state[key]=default
+if "project_data" not in st.session_state: st.session_state.project_data={"title":"","description":"","users":"","tech":""}
 
-# Login gate
+# Authentication
 if not st.session_state.authenticated:
-    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='login-card'>",unsafe_allow_html=True)
     st.markdown("# 🔎 ProjectX-Ray")
-    st.markdown("### Welcome back")
-    st.caption("Sign in to access your project stress-testing workspace.")
-    with st.form("login_form"):
-        email = st.text_input("Email", placeholder="you@example.com")
-        password = st.text_input("Password", type="password", placeholder="Enter your password")
-        login = st.form_submit_button("🔐 Sign in", type="primary", use_container_width=True)
-    if login:
-        if not email.strip() or not password:
-            st.error("Enter both email and password.")
-        else:
+    st.caption("Create an account or sign in to your personal project workspace.")
+    login_tab, register_tab = st.tabs(["🔐 Sign in","🆕 Create account"])
+    with login_tab:
+        with st.form("login"):
+            email=st.text_input("Email",key="login_email")
+            password=st.text_input("Password",type="password",key="login_password")
+            submit=st.form_submit_button("Sign in",type="primary",use_container_width=True)
+        if submit:
             try:
-                response = requests.post(AUTH_URL, json={"email": email.strip(), "password": password}, timeout=15)
-                response.raise_for_status()
-                data = response.json()
+                r=requests.post(LOGIN_URL,json={"email":email,"password":password},timeout=15); r.raise_for_status(); data=r.json()
                 if data.get("authenticated"):
-                    st.session_state.authenticated = True
-                    st.session_state.user_email = data.get("user", email.strip().lower())
-                    st.rerun()
-                else:
-                    st.error(data.get("message", "Invalid email or password."))
-            except (requests.RequestException, ValueError) as exc:
-                st.error("Login service is unavailable.")
-                st.code(str(exc))
-    st.info("Demo account: demo@projectxray.app  |  Password: projectxray123")
-    st.caption("Demo authentication is server-validated and does not require Google/OpenAI APIs.")
-    st.markdown("</div>", unsafe_allow_html=True)
+                    st.session_state.authenticated=True; st.session_state.user_email=data["user"]; st.rerun()
+                st.error(data.get("message","Invalid credentials."))
+            except Exception as exc: st.error(f"Login service unavailable: {exc}")
+    with register_tab:
+        with st.form("register"):
+            new_email=st.text_input("Email",key="reg_email")
+            new_password=st.text_input("Password",type="password",key="reg_password")
+            confirm=st.text_input("Confirm password",type="password")
+            create=st.form_submit_button("Create account",type="primary",use_container_width=True)
+        if create:
+            if new_password!=confirm: st.error("Passwords do not match.")
+            else:
+                try:
+                    r=requests.post(REGISTER_URL,json={"email":new_email,"password":new_password},timeout=15); r.raise_for_status(); data=r.json()
+                    if data.get("authenticated"):
+                        st.session_state.authenticated=True; st.session_state.user_email=data["user"]; st.success("Account created!"); st.rerun()
+                    else: st.error(data.get("message","Could not create account."))
+                except Exception as exc: st.error(f"Registration service unavailable: {exc}")
+    st.info("Demo account: demo@projectxray.app / projectxray123")
+    st.markdown("</div>",unsafe_allow_html=True)
     st.stop()
 
-# Main application
-st.markdown("""
-<div class="hero">
-  <h1>🔎 ProjectX-Ray</h1>
-  <p>Define your own project. Stress-test the idea. Get practical, personalized recommendations before you build.</p>
-  <span class="pill">User-defined input</span><span class="pill">Explainable scoring</span><span class="pill">Live recommendation agent</span><span class="pill">User workspace</span>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("""<div class='hero'><h1>🔎 ProjectX-Ray</h1><p>Stress-test your project before you build it.</p><span class='pill'>Personal workspace</span><span class='pill'>Explainable scoring</span><span class='pill'>Built-in recommendation agent</span></div>""",unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("👤 User workspace")
+    st.header("👤 My account")
     st.write(st.session_state.user_email)
-    if st.button("🚪 Logout", use_container_width=True):
-        st.session_state.authenticated = False
-        st.session_state.user_email = ""
-        st.session_state.analysis = None
-        st.session_state.agent_messages = []
+    if st.button("📚 My project history",use_container_width=True): st.session_state.show_history=True
+    if st.button("🚪 Logout",use_container_width=True):
+        for key in ["authenticated","user_email","analysis","agent_messages","show_history"]: st.session_state.pop(key,None)
         st.rerun()
     st.divider()
-    st.header("⚙️ Project controls")
-    st.caption("This is a real submission workflow — examples are optional.")
-    if st.button("✨ Load example", use_container_width=True):
-        st.session_state.project_data = random.choice(EXAMPLES).copy()
-        st.session_state.analysis = None
-        st.session_state.agent_messages = []
-        st.rerun()
-    if st.button("🧹 Clear project", use_container_width=True):
-        st.session_state.project_data = {"title": "", "description": "", "users": "", "tech": ""}
-        st.session_state.analysis = None
-        st.session_state.agent_messages = []
-        st.rerun()
+    if st.button("✨ Load example",use_container_width=True): st.session_state.project_data=random.choice(EXAMPLES); st.session_state.analysis=None; st.rerun()
+    if st.button("🧹 New project",use_container_width=True): st.session_state.project_data={"title":"","description":"","users":"","tech":""}; st.session_state.analysis=None; st.rerun()
+
+if st.session_state.get("show_history"):
+    st.subheader("📚 My Project History")
+    try:
+        r=requests.get(f"{HISTORY_URL}/{st.session_state.user_email}",timeout=15); r.raise_for_status(); history=r.json()
+        if not history: st.info("No saved projects yet. Submit your first project below.")
+        for item in history:
+            with st.expander(f"{item['title']} · Score {item['analysis']['overall_score']}/100 · {item['created_at']}"):
+                st.write(item["description"]); st.caption(f"Users: {item['target_users']} · Tech: {', '.join(item['technologies']) or 'Not specified'}")
+                st.metric("Overall score",item["analysis"]["overall_score"])
+                if st.button("Open this project",key=f"open_{item['id']}"):
+                    st.session_state.project_data={"title":item["title"],"description":item["description"],"users":item["target_users"],"tech":", ".join(item["technologies"])}
+                    st.session_state.analysis=item["analysis"]; st.session_state.show_history=False; st.rerun()
+    except Exception as exc: st.error(f"Could not load project history: {exc}")
     st.divider()
-    st.caption(f"API: {API_URL}")
-    if st.button("Check backend", use_container_width=True):
-        try:
-            health = requests.get(HEALTH_URL, timeout=10)
-            health.raise_for_status()
-            st.success("Backend is online")
-        except requests.RequestException as exc:
-            st.error("Backend is not reachable")
-            st.code(str(exc))
 
 st.subheader("1. Define your project")
-st.caption("You control the idea. ProjectX-Ray evaluates the exact information you submit.")
-
-with st.form("project_form", clear_on_submit=False):
-    title = st.text_input("Project title", value=st.session_state.project_data["title"], placeholder="e.g. Smart Campus Lost & Found")
-    description = st.text_area("What are you building?", value=st.session_state.project_data["description"], height=160, placeholder="Describe the problem, who it helps, what the system does, and the main features you want in the first version...")
-    c1, c2 = st.columns(2)
-    with c1:
-        users = st.text_input("Who will use it?", value=st.session_state.project_data["users"], placeholder="e.g. College students and campus staff")
-    with c2:
-        tech = st.text_input("Technologies", value=st.session_state.project_data["tech"], placeholder="e.g. Python, FastAPI, Streamlit, PostgreSQL")
-    submitted = st.form_submit_button("🚀 Stress-test my project", type="primary", use_container_width=True)
+with st.form("project_form"):
+    title=st.text_input("Project title",value=st.session_state.project_data["title"])
+    description=st.text_area("What are you building?",value=st.session_state.project_data["description"],height=150)
+    c1,c2=st.columns(2)
+    with c1: users=st.text_input("Who will use it?",value=st.session_state.project_data["users"])
+    with c2: tech=st.text_input("Technologies",value=st.session_state.project_data["tech"])
+    submitted=st.form_submit_button("🚀 Stress-test my project",type="primary",use_container_width=True)
 
 if submitted:
-    st.session_state.project_data = {"title": title, "description": description, "users": users, "tech": tech}
-    st.session_state.agent_messages = []
-    errors = []
-    if len(title.strip()) < 3:
-        errors.append("Project title must contain at least 3 characters.")
-    if len(description.strip()) < 20:
-        errors.append("Project description must contain at least 20 characters.")
-    if len(users.strip()) < 3:
-        errors.append("Please specify who will use the project.")
-
-    if errors:
-        for error in errors:
-            st.error(error)
-        st.session_state.analysis = None
+    if len(title.strip())<3 or len(description.strip())<20 or len(users.strip())<3:
+        st.error("Enter a title (3+ chars), description (20+ chars), and target users.")
     else:
-        payload = {"title": title.strip(), "description": description.strip(), "target_users": users.strip(), "technologies": [item.strip() for item in tech.split(",") if item.strip()]}
-        with st.spinner("Stress-testing your project and preparing recommendations..."):
-            try:
-                response = requests.post(ANALYZE_URL, json=payload, timeout=35)
-                if response.status_code >= 400:
-                    try:
-                        detail = response.json().get("detail", response.text)
-                    except ValueError:
-                        detail = response.text
-                    raise RuntimeError(f"Backend returned HTTP {response.status_code}: {detail}")
-                st.session_state.analysis = response.json()
-                st.success("Analysis completed successfully.")
-            except (requests.RequestException, RuntimeError, ValueError) as exc:
-                st.session_state.analysis = None
-                st.error("The project could not be submitted to the backend.")
-                st.code(str(exc))
-                st.info("Use 'Check backend' in the sidebar to verify the API connection.")
+        st.session_state.project_data={"title":title.strip(),"description":description.strip(),"users":users.strip(),"tech":tech.strip()}
+        payload={"title":title.strip(),"description":description.strip(),"target_users":users.strip(),"technologies":[x.strip() for x in tech.split(",") if x.strip()]}
+        try:
+            r=requests.post(f"{ANALYZE_URL}?email={st.session_state.user_email}",json=payload,timeout=35); r.raise_for_status(); st.session_state.analysis=r.json(); st.session_state.agent_messages=[]; st.success("Analysis complete and saved to your workspace.")
+        except Exception as exc: st.error(f"Analysis failed: {exc}")
 
-result = st.session_state.analysis
+result=st.session_state.analysis
 if result:
-    st.divider()
-    st.subheader(f"2. ProjectX-Ray report — {result['project_title']}")
-    source = result.get("recommendation_source", "Rule-based fallback")
-    source_label = "✨ Enhanced recommendations" if source != "Rule-based fallback" else "🧩 Deterministic recommendations"
-    st.markdown(f'<div class="source"><b>{source_label}</b> · Recommendation engine: {source}</div>', unsafe_allow_html=True)
-
-    cols = st.columns(6)
-    for col, (label, value) in zip(cols, [("Overall", result["overall_score"]), ("Feasibility", result["feasibility"]["score"]), ("Technical risk", result["technical_risk"]["score"]), ("Originality", result["originality"]["score"]), ("Scope", result["scope_clarity"]["score"]), ("User fit", result["user_fit"]["score"])]):
-        col.metric(label, value)
-
-    st.info(f"**Verdict:** {result['verdict']}  ·  **Confidence:** {result['confidence']}/100")
-    left, right = st.columns(2)
+    st.divider(); st.subheader(f"2. ProjectX-Ray report — {result['project_title']}")
+    cols=st.columns(6)
+    for col,(label,key) in zip(cols,[("Overall","overall_score"),("Feasibility","feasibility"),("Technical risk","technical_risk"),("Originality","originality"),("Scope","scope_clarity"),("User fit","user_fit")]): col.metric(label,result[key] if isinstance(result[key],int) else result[key]["score"])
+    st.info(f"**Verdict:** {result['verdict']} · **Confidence:** {result['confidence']}/100")
+    left,right=st.columns(2)
     with left:
         st.markdown("### 🎯 Why these scores?")
-        for key, label in [("feasibility", "Feasibility"), ("technical_risk", "Technical risk"), ("originality", "Originality"), ("scope_clarity", "Scope clarity"), ("user_fit", "User fit")]:
-            item = result[key]
-            st.markdown(f"**{label}: {item['score']}/100 — {item['level']}**")
-            for reason in item["reasons"]:
-                st.markdown(f"- {reason}")
+        for key,label in [("feasibility","Feasibility"),("technical_risk","Technical risk"),("originality","Originality"),("scope_clarity","Scope clarity"),("user_fit","User fit")]:
+            item=result[key]; st.markdown(f"**{label}: {item['score']}/100 — {item['level']}**")
+            for reason in item["reasons"]: st.markdown(f"- {reason}")
     with right:
-        st.markdown("### 💡 Personalized recommendations")
-        for index, recommendation in enumerate(result["recommendations"], start=1):
-            st.markdown(f'<div class="rec"><b>{index}.</b> {recommendation}</div>', unsafe_allow_html=True)
-        if result["risk_flags"]:
-            st.markdown("### ⚠️ Risk flags")
-            for flag in result["risk_flags"]:
-                st.markdown(f'<div class="risk"><b>{flag["severity"].upper()}</b> · {flag["category"]}<br>{flag["message"]}</div>', unsafe_allow_html=True)
-
-    st.divider()
-    st.subheader("3. 🤖 Ask the live recommendation agent")
-    st.caption("Ask follow-up questions about your submitted project. The agent receives your project and ProjectX-Ray report through the FastAPI API.")
-
-    for message in st.session_state.agent_messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-            if message.get("steps"):
-                st.markdown("**Suggested next steps:**")
-                for step in message["steps"]:
-                    st.markdown(f"- {step}")
-
-    question = st.chat_input("e.g. What should I build first for the MVP?")
-    if question:
-        st.session_state.agent_messages.append({"role": "user", "content": question})
-        project_payload = {
-            "title": st.session_state.project_data["title"].strip(),
-            "description": st.session_state.project_data["description"].strip(),
-            "target_users": st.session_state.project_data["users"].strip(),
-            "technologies": [item.strip() for item in st.session_state.project_data["tech"].split(",") if item.strip()],
-        }
-        agent_payload = {"project": project_payload, "analysis": result, "question": question.strip()}
+        st.markdown("### 💡 Recommendations")
+        for i,rec in enumerate(result["recommendations"],1): st.markdown(f"<div class='rec'><b>{i}.</b> {rec}</div>",unsafe_allow_html=True)
+        for flag in result["risk_flags"]: st.markdown(f"<div class='risk'><b>{flag['severity'].upper()}</b> · {flag['category']}<br>{flag['message']}</div>",unsafe_allow_html=True)
+    st.divider(); st.subheader("3. 🤖 Ask the recommendation agent")
+    for m in st.session_state.agent_messages:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+            for step in m.get("steps",[]): st.markdown(f"- {step}")
+    q=st.chat_input("What should I build first? How can I improve originality?")
+    if q:
+        st.session_state.agent_messages.append({"role":"user","content":q})
+        project={"title":st.session_state.project_data["title"],"description":st.session_state.project_data["description"],"target_users":st.session_state.project_data["users"],"technologies":[x.strip() for x in st.session_state.project_data["tech"].split(",") if x.strip()]}
         try:
-            with st.spinner("Recommendation agent is thinking..."):
-                response = requests.post(RECOMMEND_URL, json=agent_payload, timeout=35)
-                if response.status_code >= 400:
-                    try:
-                        detail = response.json().get("detail", response.text)
-                    except ValueError:
-                        detail = response.text
-                    raise RuntimeError(f"Agent API returned HTTP {response.status_code}: {detail}")
-                data = response.json()
-            st.session_state.agent_messages.append({"role": "assistant", "content": data["answer"], "steps": data.get("next_steps", []), "source": data.get("source")})
-            st.rerun()
-        except (requests.RequestException, RuntimeError, ValueError, KeyError) as exc:
-            st.session_state.agent_messages.append({"role": "assistant", "content": f"I couldn't reach the recommendation agent right now. The built-in recommendations are still available above.\n\nTechnical detail: `{exc}`"})
-            st.rerun()
-
-    st.caption("The external model does not control the explainable scores. Without an external API key, the agent safely uses the built-in recommendation engine.")
+            r=requests.post(RECOMMEND_URL,json={"project":project,"analysis":result,"question":q},timeout=35); r.raise_for_status(); data=r.json(); st.session_state.agent_messages.append({"role":"assistant","content":data["answer"],"steps":data.get("next_steps",[])}); st.rerun()
+        except Exception as exc: st.error(f"Agent unavailable: {exc}")
 else:
-    st.divider()
-    st.subheader("2. Your result will appear here")
-    st.write("Submit your own project above. ProjectX-Ray will send your exact inputs to the deployed FastAPI backend and return scores, reasons, risks, and recommendations.")
+    st.info("Submit a project to generate your explainable report and save it to your personal history.")

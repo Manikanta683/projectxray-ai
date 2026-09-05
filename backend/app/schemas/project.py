@@ -8,6 +8,18 @@ class ProjectIdeaRequest(BaseModel):
     technologies: list[str] = Field(default_factory=list, max_length=30)
 
 
+class RecommendationAgentRequest(BaseModel):
+    project: ProjectIdeaRequest
+    analysis: "AnalysisResponse"
+    question: str = Field(..., min_length=3, max_length=1000)
+
+
+class RecommendationAgentResponse(BaseModel):
+    answer: str
+    next_steps: list[str]
+    source: str
+
+
 class DimensionScore(BaseModel):
     score: int = Field(..., ge=0, le=100)
     level: str

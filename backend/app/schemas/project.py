@@ -6,6 +6,11 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=4, max_length=200)
 
 
+class RegisterRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=160)
+    password: str = Field(..., min_length=6, max_length=200)
+
+
 class LoginResponse(BaseModel):
     authenticated: bool
     user: str
@@ -43,7 +48,7 @@ class AnalysisResponse(BaseModel):
     user_fit: DimensionScore
     risk_flags: list[RiskFlag]
     recommendations: list[str]
-    recommendation_source: str = "Rule-based fallback"
+    recommendation_source: str = "Built-in recommendation engine"
 
 
 class RecommendationAgentRequest(BaseModel):
@@ -56,3 +61,13 @@ class RecommendationAgentResponse(BaseModel):
     answer: str
     next_steps: list[str]
     source: str
+
+
+class ProjectHistoryItem(BaseModel):
+    id: int
+    title: str
+    description: str
+    target_users: str
+    technologies: list[str]
+    analysis: AnalysisResponse
+    created_at: str

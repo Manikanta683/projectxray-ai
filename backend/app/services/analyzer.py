@@ -23,7 +23,7 @@ GENERIC_CATEGORIES = {
     "e-commerce": "E-commerce is a common project category; focus on a distinctive workflow or niche.",
     "social media": "Social media is broad and crowded; narrow the user problem and core loop.",
     "attendance": "Attendance systems are common; identify a measurable improvement over existing tools.",
-    "todo": "Task-management apps are common; add a specific user problem or differentiator.",
+    "todo": "Task-management apps are common; add a specific user problem or measurable outcome.",
     "portfolio": "Portfolio systems are common; target a specific audience or unique outcome.",
 }
 
@@ -40,7 +40,7 @@ def clamp(value: float) -> int:
     return max(0, min(100, round(value)))
 
 
-def level(score: int) -> str:
+def score_level(score: int) -> str:
     if score >= 80:
         return "Strong"
     if score >= 65:
@@ -50,6 +50,16 @@ def level(score: int) -> str:
     if score >= 35:
         return "Weak"
     return "Critical"
+
+
+def risk_level(score: int) -> str:
+    if score >= 80:
+        return "Low concern"
+    if score >= 65:
+        return "Moderate concern"
+    if score >= 45:
+        return "High concern"
+    return "Critical concern"
 
 
 def words(text: str) -> set[str]:
@@ -96,7 +106,7 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
     if unknown_tech:
         risk_points += min(15, len(unknown_tech) * 3)
         risk_reasons.append("Some technologies are not in the built-in common-stack list and should be validated early: " + ", ".join(unknown_tech[:5]) + ".")
-    if not unknown_tech:
+    else:
         risk_reasons.append("The supplied stack uses broadly established technologies or no unusual dependencies were detected.")
     if any(term in tokens for term in {"production", "millions", "global", "24/7"}):
         risk_points += 10
@@ -163,9 +173,6 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
         user_fit_reasons.append("A concrete user problem or measurable outcome is not yet explicit.")
     user_fit = clamp(user_fit)
 
-    if not feasibility_reasons:
-        feasibility_reasons.append("Feasibility is based on the supplied scope and implementation information.")
-
     overall = clamp(
         feasibility * 0.28
         + risk_score * 0.22
@@ -204,11 +211,11 @@ def analyze_project(project: ProjectIdeaRequest) -> AnalysisResponse:
         overall_score=overall,
         verdict=verdict,
         confidence=confidence,
-        feasibility=DimensionScore(score=feasibility, level=level(feasibility), reasons=feasibility_reasons),
-        technical_risk=DimensionScore(score=risk_score, level=level(risk_score), reasons=risk_reasons),
-        originality=DimensionScore(score=originality, level=level(originality), reasons=originality_reasons),
-        scope_clarity=DimensionScore(score=scope, level=level(scope), reasons=scope_reasons),
-        user_fit=DimensionScore(score=user_fit, level=level(user_fit), reasons=user_fit_reasons),
+        feasibility=DimensionScore(score=feasibility, level=score_level(feasibility), reasons=feasibility_reasons),
+        technical_risk=DimensionScore(score=risk_score, level=risk_level(risk_score), reasons=risk_reasons),
+        originality=DimensionScore(score=originality, level=score_level(originality), reasons=originality_reasons),
+        scope_clarity=DimensionScore(score=scope, level=score_level(scope), reasons=scope_reasons),
+        user_fit=DimensionScore(score=user_fit, level=score_level(user_fit), reasons=user_fit_reasons),
         risk_flags=risk_flags,
         recommendations=recommendations,
     )
